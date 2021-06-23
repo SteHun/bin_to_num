@@ -1,7 +1,13 @@
 import argparse
-import os
+from os import write
 from sys import exit
-from tkinter import filedialog,Tk
+from types import ModuleType
+try:
+    from tkinter import filedialog,Tk
+    tkinter_installed = True
+except ModuleNotFoundError:
+    tkinter_installed = False
+    print("If you are using a graphical enviorment, concider installing tkinter.")
 from tqdm import tqdm
 
 def handle_error(undetailed_message, detailed_message):
@@ -19,18 +25,24 @@ def parse_file(file_content):
         result += item
     return result
 
-if __name__ == "__main__":
+def main():
     #parsing arguement
     parser = argparse.ArgumentParser(description="Prints the contents of a binairy")
-    parser.add_argument("path", nargs='?', help="Gives the file to show the contents of right from the command line. ", type=str)
+    parser.add_argument("load_path", nargs='?', help="Gives the file to show the contents of right from the command line. ", type=str)
+    parser.add_argument("save_path", nargs='?', help="Gives the file to show the contents of right from the command line. ", type=str)
+
     args = parser.parse_args()
-    path = args.path
-    
-    #prompt filename if neceserry
-    if path == None:
+    path = args.load_path
+    write_location = args.save_path
+    if tkinter_installed:
         dummy = Tk()
         Tk.withdraw(dummy)
-        path = filedialog.askopenfilename()
+    #prompt filename if neceserry
+    if path == None:
+        if tkinter_installed:
+            path = filedialog.askopenfilename("Open a file to make intro a single number")
+        else:
+            exit("Please supply a file through the CLI if tkinter is not installed. ")
     if path == "":
         exit("There is no file to open")
     try:
@@ -38,7 +50,16 @@ if __name__ == "__main__":
             content = file.read()
         to_write = parse_file(content)
         # add a save dialog here later
-        with open("output.txt", "w") as file:
+        while True:
+            if tkinter_installed:
+                write_location = filedialog.asksaveasfilename()
+            if write_location == "":
+                print("You canceled the prompt, do you really want to discard the file?")
+                if input("y/N>").lower().startswith("y"):
+                    exit(0)
+            else:
+                break
+        with open(write_location, "w") as file:
             file.write(str(to_write))
 
     except FileNotFoundError:
@@ -46,3 +67,7 @@ if __name__ == "__main__":
     except Exception as e:
         import traceback
         handle_error(e, traceback.format_exc())
+
+
+if __name__ == "__main__":
+    main()
